@@ -1,6 +1,6 @@
 // Offline cache: the app shell is cached on first visit and served from cache afterwards.
 // Bump VERSION whenever index.html changes so phones pick up the new version.
-const VERSION = 'migiude-v2';
+const VERSION = 'migiude-v3';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
