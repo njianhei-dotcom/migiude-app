@@ -13,7 +13,7 @@
 :root{
   --bg:#eef1f4; --surface:#ffffff; --ink:#15202b; --mute:#5d6b7a; --line:#d5dbe2; --soft:#e4e9ee;
   --accent:#b3202c; --accent-ink:#ffffff; --ok:#1d7a4d; --warn:#a86200; --off:#7b8794;
-  --cat-uni:#2f62b8; --cat-job:#1d7a4d; --cat-train:#b3202c; --cat-play:#a86200; --cat-etc:#5d6b7a; --chip-ink:#ffffff; --sat:#2f62b8; --sun:#b3202c;
+  --cat-uni:#2f62b8; --cat-job:#1d7a4d; --cat-train:#b3202c; --cat-play:#a86200; --cat-etc:#5d6b7a; --cat-cosme:#d6337f; --cat-holiday:#7b45c4; --chip-ink:#ffffff; --sat:#2f62b8; --sun:#b3202c;
   --f-body:"Hiragino Sans","Noto Sans JP","Yu Gothic UI","Meiryo",system-ui,sans-serif;
   --f-num:"Roboto Condensed","Arial Narrow","Hiragino Sans",system-ui,sans-serif;
   color-scheme:light;
@@ -21,7 +21,7 @@
 @media (prefers-color-scheme: dark){:root{
   --bg:#10161d; --surface:#1a232d; --ink:#e8edf2; --mute:#9aa7b5; --line:#2e3a47; --soft:#232e3a;
   --accent:#ef5a64; --accent-ink:#14090a; --ok:#57c890; --warn:#e2a54a; --off:#8794a2;
-  --cat-uni:#7fa8ee; --cat-job:#57c890; --cat-train:#ef5a64; --cat-play:#e2a54a; --cat-etc:#9aa7b5; --chip-ink:#10161d; --sat:#7fa8ee; --sun:#ef5a64;
+  --cat-uni:#7fa8ee; --cat-job:#57c890; --cat-train:#ef5a64; --cat-play:#e2a54a; --cat-etc:#9aa7b5; --cat-cosme:#f27ab0; --cat-holiday:#b48cf0; --chip-ink:#10161d; --sat:#7fa8ee; --sun:#ef5a64;
   color-scheme:dark}}
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -62,7 +62,8 @@ ul{list-style:none;margin:0;padding:0}
 .todo{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:7px 0}
 .todo input{width:22px;height:22px;accent-color:var(--accent)}
 .todo.done .tt{text-decoration:line-through;color:var(--mute)}
-.c-uni{background:var(--cat-uni)}.c-job{background:var(--cat-job)}.c-train{background:var(--cat-train)}.c-play{background:var(--cat-play)}.c-etc{background:var(--cat-etc)}
+.c-uni{background:var(--cat-uni)}.c-job{background:var(--cat-job)}.c-train{background:var(--cat-train)}.c-play{background:var(--cat-play)}.c-etc{background:var(--cat-etc)}.c-cosme{background:var(--cat-cosme)}.c-holiday{background:var(--cat-holiday)}
+.cell.hol .n{color:var(--cat-holiday)}
 .week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-size:11px;text-align:center}
 .week div{padding:5px 2px;border-radius:4px;background:var(--soft);color:var(--mute);line-height:1.35;font-variant-numeric:tabular-nums}
 .week div.now{background:var(--ink);color:var(--surface);font-weight:700}
@@ -133,7 +134,7 @@ nav button[aria-selected="true"]{color:var(--ink);border-top-color:var(--accent)
         <label class="full">予定<input id="e-title" required></label>
         <label>開始<input id="e-start" type="time"></label>
         <label>終了<input id="e-end" type="time"></label>
-        <label class="full">種類<select id="e-cat"><option value="uni">大学</option><option value="job">バイト</option><option value="train">トレーニング</option><option value="play">遊び</option><option value="etc" selected>その他</option></select></label>
+        <label class="full">種類<select id="e-cat"><option value="uni">大学</option><option value="job">バイト</option><option value="train">トレーニング</option><option value="cosme">化粧品</option><option value="play">遊び</option><option value="holiday">祝日</option><option value="etc" selected>その他</option></select></label>
         <button class="btn full" type="submit">この日に追加する</button>
       </form>
       <form id="todoForm" style="grid-template-columns:1fr auto">
@@ -220,7 +221,7 @@ const h=(tag,attrs,...kids)=>{const e=document.createElement(tag);if(attrs)for(c
 const pad=n=>String(n).padStart(2,'0');
 const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const WD=['日','月','火','水','木','金','土'];
-const CATS={uni:'大学',job:'バイト',train:'トレーニング',play:'遊び',etc:'その他'};
+const CATS={uni:'大学',job:'バイト',train:'トレーニング',cosme:'化粧品',play:'遊び',holiday:'祝日',etc:'その他'};
 const md=s=>{const p=String(s||'').split('-');return p.length===3?(+p[1])+'/'+(+p[2]):s;};
 const dateOf=s=>{const p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2]);};
 const dow=s=>WD[dateOf(s).getDay()];
@@ -294,7 +295,7 @@ function renderCal(){const [Y,M]=calMonth.split('-').map(Number);$('c-title').te
   const first=new Date(Y,M-1,1).getDay(),dim=new Date(Y,M,0).getDate();
   for(let i=0;i<first;i++)g.append(h('div',{class:'cell blank'}));
   for(let d=1;d<=dim;d++){const ds=Y+'-'+pad(M)+'-'+pad(d);const w=(first+d-1)%7;const evs=Object.values(S.events).filter(e=>e.date===ds).sort(evSort);const rec=S.days[ds];const open=Object.values(S.todos).some(t=>t.date===ds&&!t.done);
-    const c=h('button',{type:'button',class:'cell'+(w===0?' sun':w===6?' sat':'')+(ds===TODAY?' today':'')+(ds===sel?' sel':''),'aria-label':M+'月'+d+'日 予定'+evs.length+'件'},h('span',{class:'n'},d));
+    const c=h('button',{type:'button',class:'cell'+(evs.some(e=>e.cat==='holiday')?' hol':w===0?' sun':w===6?' sat':'')+(ds===TODAY?' today':'')+(ds===sel?' sel':''),'aria-label':M+'月'+d+'日 予定'+evs.length+'件'},h('span',{class:'n'},d));
     evs.slice(0,2).forEach(e=>c.append(h('span',{class:'chip c-'+(CATS[e.cat]?e.cat:'etc')},e.title)));if(evs.length>2)c.append(h('span',{class:'more'},'+'+(evs.length-2)));
     const dots=h('span',{class:'dots'});if(rec&&rec.part)dots.append(h('i'));if(rec&&rec.boxing)dots.append(h('i',{class:'b'}));if(open)dots.append(h('i',{class:'t'}));if(dots.children.length)c.append(dots);
     c.addEventListener('click',()=>{sel=ds;renderCal();});g.append(c);}
@@ -364,7 +365,7 @@ $('dayForm').addEventListener('submit',e=>{e.preventDefault();const date=$('d-da
 /* ---------- import / export ---------- */
 function importData(o){if(!o||o.migiude!==1)throw new Error('形式が違う');let n=0;
   const put=(col,key)=>{(o[col]||[]).forEach(x=>{if(!x||typeof x!=='object')return;const id=String(x[key]||'');if(!id)return;S[col][id]=Object.assign({},x,key==='id'?{id}:{});n++;});};
-  put('events','id');put('todos','id');put('schedules','id');
+  ['events','todos','schedules'].forEach(col=>(o[col]||[]).forEach(x=>{if(!x||!x.id)return;const id=String(x.id);S[col][id]=Object.assign({},S[col][id]||{},x,{id});n++;}));
   const pics=[];
   (o.exercises||[]).forEach(x=>{if(!x||!x.id)return;const id=String(x.id);const cur=S.exercises[id]||{};const pd=x.photoData;const y=Object.assign({},x);delete y.photoData;
     S.exercises[id]=Object.assign({},cur,y,{id,photo:!!cur.photo,media:cur.media||'image'});if(typeof pd==='string'&&pd.startsWith('data:image/'))pics.push([id,pd]);n++;});
@@ -384,7 +385,7 @@ $('ex-copy').addEventListener('click',async()=>{try{await navigator.clipboard.wr
 $('schedForm').addEventListener('submit',e=>{e.preventDefault();const week={};for(let k=0;k<7;k++){const o=$('s-o'+k).value,c=$('s-c'+k).value;if(o&&c)week[String(k)]={open:o,close:c};}const id=uid();S.schedules[id]={id,name:$('s-name').value.trim(),week,dates:{},note:''};e.target.reset();save();showTab('today');});
 async function renderStatus(){const c=['events','todos','days','exercises','schedules'].map(k=>Object.keys(S[k]).length);let p='';try{p=navigator.storage&&navigator.storage.persisted&&await navigator.storage.persisted()?'消えにくい保存（許可済み）':'通常の保存';}catch(e){}
   $('st-msg').textContent='予定 '+c[0]+'件 / ToDo '+c[1]+'件 / トレーニング記録 '+c[2]+'日 / 種目 '+c[3]+'件 / ジム時間 '+c[4]+'件\n'+p+'\nアプリのバージョン：'+APPV;}
-const APPV='4';
+const APPV='5';
 
 /* ---------- render ---------- */
 function render(){TODAY=ymd(new Date());$('hd').textContent=md(TODAY)+'（'+dow(TODAY)+'）';
