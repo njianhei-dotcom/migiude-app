@@ -183,7 +183,7 @@ nav button[aria-selected="true"]{color:var(--ink);border-top-color:var(--accent)
       <h2>Claudeからのデータを取り込む</h2>
       <span class="note">Claudeが作った取り込み用の文字を貼り付けるか、ファイルを選ぶ。同じものは上書きされ、ほかのデータは消えない。</span>
       <textarea id="im-text" placeholder='{"migiude":1, ...}' aria-label="取り込み用の文字"></textarea>
-      <div class="row"><button class="btn pri" id="im-go" type="button">取り込む</button><label class="btn" for="im-file" style="flex-direction:row">ファイルから</label><input id="im-file" type="file" accept=".json,application/json,text/plain" hidden></div>
+      <div class="row"><label class="btn pri" for="im-file" style="flex-direction:row">ファイルを選んで取り込む</label><button class="btn" id="im-go" type="button">貼り付けた文字を取り込む</button><input id="im-file" type="file" hidden></div>
       <p class="msg" id="im-msg"></p>
     </div>
     <div class="panel">
@@ -368,9 +368,11 @@ function importData(o){if(!o||o.migiude!==1)throw new Error('形式が違う');l
   (o.days||[]).forEach(x=>{if(x&&isDate(x.date)){S.days[x.date]=Object.assign({},S.days[x.date]||{},x);n++;}});
   const del=o.delete||{};['events','todos','exercises','schedules','days'].forEach(c=>(del[c]||[]).forEach(id=>{delete S[c][id];}));
   save();return n;}
-function doImport(text){const m=$('im-msg');try{const n=importData(JSON.parse(text.trim()));m.className='msg';m.textContent=n+'件を取り込んだ。';$('im-text').value='';}catch(e){m.className='msg err';m.textContent='取り込めなかった。Claudeが作った文字を最初から最後まで全部コピーして貼って。';}}
+function doImport(text){const m=$('im-msg');text=String(text||'').replace(/^\uFEFF/,'');const a=text.indexOf('{'),b=text.lastIndexOf('}');
+  if(a<0||b<a){m.className='msg err';m.textContent=text.trim()?'取り込み用のデータが見つからなかった。migiude-import.json を選んで。':'先に「ファイルを選んで取り込む」でファイルを選ぶか、文字を貼り付けて。';return;}
+  try{const n=importData(JSON.parse(text.slice(a,b+1)));m.className='msg';m.textContent=n+'件を取り込んだ。カレンダーを見てみて。';$('im-text').value='';}catch(e){m.className='msg err';m.textContent='取り込めなかった。Claudeが作った文字を最初から最後まで全部コピーして貼って。';}}
 $('im-go').addEventListener('click',()=>doImport($('im-text').value));
-$('im-file').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(!f)return;const r=new FileReader();r.onload=()=>doImport(String(r.result));r.readAsText(f);});
+$('im-file').addEventListener('change',e=>{const f=e.target.files[0];e.target.value='';if(!f)return;$('im-msg').className='msg';$('im-msg').textContent='読み込み中…（'+f.name+'）';const r=new FileReader();r.onload=()=>doImport(String(r.result));r.onerror=()=>{$('im-msg').className='msg err';$('im-msg').textContent='ファイルを開けなかった。もう一度選んで。';};r.readAsText(f);});
 function exportText(){const o={migiude:1,exportedAt:new Date().toISOString()};['events','todos','exercises','schedules','days'].forEach(c=>o[c]=Object.values(S[c]));return JSON.stringify(o);}
 $('ex-dl').addEventListener('click',()=>{const a=h('a',{href:URL.createObjectURL(new Blob([exportText()],{type:'application/json'})),download:'migiude-backup-'+TODAY+'.json'});document.body.append(a);a.click();a.remove();$('ex-msg').textContent='書き出した。ダウンロードフォルダを見て。';});
 $('ex-copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(exportText());$('ex-msg').textContent='コピーした。メモアプリなどに貼っておいて。';}catch(e){$('ex-msg').textContent='コピーできなかった。「ファイルに書き出す」を使って。';}});
@@ -378,7 +380,7 @@ $('ex-copy').addEventListener('click',async()=>{try{await navigator.clipboard.wr
 $('schedForm').addEventListener('submit',e=>{e.preventDefault();const week={};for(let k=0;k<7;k++){const o=$('s-o'+k).value,c=$('s-c'+k).value;if(o&&c)week[String(k)]={open:o,close:c};}const id=uid();S.schedules[id]={id,name:$('s-name').value.trim(),week,dates:{},note:''};e.target.reset();save();showTab('today');});
 async function renderStatus(){const c=['events','todos','days','exercises','schedules'].map(k=>Object.keys(S[k]).length);let p='';try{p=navigator.storage&&navigator.storage.persisted&&await navigator.storage.persisted()?'消えにくい保存（許可済み）':'通常の保存';}catch(e){}
   $('st-msg').textContent='予定 '+c[0]+'件 / ToDo '+c[1]+'件 / トレーニング記録 '+c[2]+'日 / 種目 '+c[3]+'件 / ジム時間 '+c[4]+'件\n'+p+'\nアプリのバージョン：'+APPV;}
-const APPV='1';
+const APPV='2';
 
 /* ---------- render ---------- */
 function render(){TODAY=ymd(new Date());$('hd').textContent=md(TODAY)+'（'+dow(TODAY)+'）';
